@@ -1,0 +1,2 @@
+a   x = 0   y = 0   dx = 10     dy = 6      height = 1      top = 0    side = 0
+a   x = 1   y = 1   dx = 2      dy = 2      height = 2      top = 0    side = 0
