@@ -58,7 +58,7 @@ public:
 };
 
 // The state when the game is in a battle.
-class BattleState : public State
+class BattleState : public State, public UpdateListener
 {
 protected:
 	// The grid for the battle.
@@ -81,6 +81,10 @@ protected:
 
 	/// <summary>Displays the state.</summary>
 	void __display() const;
+
+	/// <summary>Updates the state by a time step.</summary>
+	/// <param name="frames_passed">The number of frames that have passed since the last update.</param>
+	void __update(int frames_passed);
 
 public:
 	/// <summary>Initializes a new battle state.</summary>

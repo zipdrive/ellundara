@@ -1,6 +1,8 @@
 #include <algorithm>
 #include "../../include/battle.h"
 
+#include <iostream>
+
 #define GRID_COORDINATE(x, y, width) ((x) + ((width) * (y)))
 
 using namespace std;
@@ -93,18 +95,19 @@ const BattleTile* BattleGrid::get_tile(int x, int y) const
 
 BattleState::BattleState(string map) : m_Grid(map)
 {
-	m_Angle = 0.7854f;
-	m_Zoom = 0.75f;
+	m_Camera.set(1, 0, 256.f);
+	//m_Angle = 0.7854f;
+	m_Angle = 2.3562f;
+	m_Zoom = 1.f;
+
+	unfreeze();
 }
 
 void BattleState::__set_bounds()
 {
 	m_Transform.set(0, 0, 2.f * m_Zoom / get_width());
 	m_Transform.set(1, 1, 2.f * m_Zoom / get_height());
-	m_Transform.set(2, 2, 0.00198f);
-
-	m_Transform.set(0, 3, -2.f * m_Camera.get(0) / get_width());
-	m_Transform.set(1, 3, -2.f * m_Camera.get(1) / get_height());
+	m_Transform.set(2, 2, 0.0001f);
 }
 
 void BattleState::__display() const
@@ -116,7 +119,7 @@ void BattleState::__display() const
 	mat_rotatex(0.8727f);
 	mat_rotatez(m_Angle);
 
-	vec2i dir(cosf(m_Angle) < 0 ? -1 : 1, sinf(m_Angle) < 0 ? -1 : 1);
+	vec2i dir(sinf(m_Angle) > 0 ? -1 : 1, cosf(m_Angle) > 0 ? -1 : 1);
 	int istart, iend, jstart, jend;
 	if (dir.get(0) < 0)
 	{
@@ -139,6 +142,7 @@ void BattleState::__display() const
 		jend = m_Grid.height;
 	}
 
+	mat_translate((GRID_TILE_SIZE * istart) - m_Camera.get(0), (GRID_TILE_SIZE * jstart) - m_Camera.get(1), 0.f);
 	for (int i = istart; i != iend; i += dir.get(0))
 	{
 		mat_push();
@@ -146,15 +150,35 @@ void BattleState::__display() const
 		{
 			// TODO check if tile needs to be drawn
 
-			mat4x4f trans = mat_get();
-
+			// Draw the ground of the tile
+			mat_push();
 			const BattleTile* tile = m_Grid.get_tile(i, j);
+			mat_translate(0.f, 0.f, -tile->height * 0.3f * GRID_TILE_SIZE);
 			BattleTile::sprite_sheet->display(tile->top, clear_palette);
-			mat_translate(0.f, GRID_TILE_SIZE, 0.f);
+			mat_pop();
+
+			int dh;
+
+			if (const BattleTile* dx = m_Grid.get_tile(i + dir.get(0), j))
+			{
+				if ((dh = tile->height - dx->height) > 0)
+				{
+
+				}
+			}
+
+			//const BattleTile* dy = m_Grid.get_tile(i, j + dir.get(1));
+			
+			mat_translate(0.f, GRID_TILE_SIZE * dir.get(1), 0.f);
 		}
 		mat_pop();
-		mat_translate(GRID_TILE_SIZE, 0.f, 0.f);
+		mat_translate(GRID_TILE_SIZE * dir.get(0), 0.f, 0.f);
 	}
 
 	mat_pop();
+}
+
+void BattleState::__update(int frames_passed)
+{
+	m_Angle += frames_passed * 0.01309f;
 }
