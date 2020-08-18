@@ -3,6 +3,37 @@
 #include "state.h"
 
 #define GRID_TILE_SIZE 128
+#define GRID_TILE_HEIGHT (GRID_TILE_SIZE * 9 / 32)
+
+
+struct BattleTileType
+{
+	// The sprite for the top of the tile.
+	Sprite* top;
+
+	// The sprite for the side of the tile.
+	Sprite* side;
+};
+
+class BattleTileSet
+{
+private:
+	static std::unordered_map<std::string, BattleTileSet*> m_Sets;
+
+	// The sprite sheet.
+	SpriteSheet* m_SpriteSheet;
+
+	std::unordered_map<std::string, BattleTileType*> m_Types;
+
+	BattleTileSet(std::string id);
+
+public:
+	static BattleTileSet* get_tile_set(std::string id);
+
+	SpriteSheet* get_sprite_sheet();
+
+	const BattleTileType* get_tile_type(std::string type) const;
+};
 
 
 class BattleObject;
@@ -10,13 +41,8 @@ class BattleTerrain;
 
 struct BattleTile
 {
-	static SpriteSheet* sprite_sheet;
-
-	// The sprite for the top of the tile.
-	SPRITE_KEY top;
-
-	// The sprite for the sides of the tile.
-	SPRITE_KEY side;
+	// The type of tile.
+	const BattleTileType* type;
 
 	// The height of the tile.
 	int height;
@@ -31,6 +57,10 @@ struct BattleTile
 class BattleGrid
 {
 protected:
+	// The tile set used for the grid.
+	BattleTileSet* m_TileSet;
+
+	// The array of tiles.
 	BattleTile* m_Tiles;
 
 public:
@@ -55,6 +85,11 @@ public:
 	/// <param name="y">The y-coordinate of the grid tile.</param>
 	/// <returns>A const pointer to the tile.</returns>
 	const BattleTile* get_tile(int x, int y) const;
+
+	/// <summary>Displays the grid.</summary>
+	/// <param name="dx">The x-direction from back to front.</param>
+	/// <param name="dy">The y-direction from back to front.</param>
+	void display(int dx, int dy, Palette* palette) const;
 };
 
 // The state when the game is in a battle.
@@ -90,4 +125,42 @@ public:
 	/// <summary>Initializes a new battle state.</summary>
 	/// <param name="map">The ID of the battle map.</param>
 	BattleState(std::string map);
+};
+
+
+
+/*
+	OBJECTS
+*/
+
+class BattleObject
+{
+protected:
+	static std::unordered_map<std::string, BattleObject*> m_Objects;
+
+public:
+	static BattleObject* get_object();
+
+	virtual void display() const = 0;
+};
+
+class BattleActor : public BattleObject
+{
+
+};
+
+
+
+/*
+	TERRAIN
+*/
+
+class BattleTerrain
+{
+public:
+	/// <summary>Retrieves the height displacement of an object on top of the terrain.</summary>
+	/// <returns>How far an object on or in the terrain is displaced from the ground.</returns>
+	virtual int get_height() = 0;
+
+	virtual void display() const = 0;
 };
