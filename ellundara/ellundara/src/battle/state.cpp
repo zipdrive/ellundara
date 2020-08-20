@@ -93,12 +93,26 @@ BattleGrid::BattleGrid(string map)
 
 	LoadFile file("res/maps/" + map + ".txt");
 
+	regex tileset_regex("tileset\\s+(.*)");
+	regex tile_regex("tile\\s+(.*)");
+	regex obj_regex("obj\\s+(.*)");
+
 	while (file.good())
 	{
+		// Read the next line of the file
 		std::unordered_map<string, int> line;
 		string id = file.load_data(line);
 
-		if (line.find("x") != line.end())
+		smatch match;
+		
+		// Load tileset
+		if (regex_match(id, match, tileset_regex))
+		{
+			m_TileSet = BattleTileSet::get_tile_set(match[1].str());
+		}
+
+		// Construct tiles
+		else if (regex_match(id, match, tile_regex))
 		{
 			int x = line["x"];
 			int y = line["y"];
@@ -134,7 +148,7 @@ BattleGrid::BattleGrid(string map)
 			}
 
 			int h = line["height"];
-			const BattleTileType* type = m_TileSet->get_tile_type(id);
+			const BattleTileType* type = m_TileSet->get_tile_type(match[1].str());
 
 			for (int i = x; i < x + dx; ++i)
 			{
@@ -146,9 +160,18 @@ BattleGrid::BattleGrid(string map)
 				}
 			}
 		}
-		else if (!id.empty())
+
+		// Construct objects
+		else if (regex_match(id, match, obj_regex))
 		{
-			m_TileSet = BattleTileSet::get_tile_set(id);
+			int x = line["x"];
+			int y = line["y"];
+
+			BattleTile* tile = get_tile(x, y);
+			if (tile)
+				tile->obj = BattleObject::get_object(match[1].str());
+
+			cout << "Object loaded.";
 		}
 	}
 }
@@ -206,7 +229,7 @@ void BattleGrid::display(int dx, int dy, Palette* palette) const
 
 				// Draw the ground of the tile
 				mat_push();
-				mat_translate(0.f, 0.f, -tile->height * GRID_TILE_HEIGHT);
+				mat_translate(0.f, 0.f, tile->height * GRID_TILE_HEIGHT);
 				tile_sheet->display(tile->type->top->key, palette);
 
 				// Draw the sides of the tile
@@ -226,7 +249,7 @@ void BattleGrid::display(int dx, int dy, Palette* palette) const
 					}
 
 					mat_rotatez(1.5708f);
-					mat_rotatex(-1.5708f);
+					mat_rotatex(1.5708f);
 
 					for (int k = 0; k < dh; ++k)
 					{
@@ -249,7 +272,7 @@ void BattleGrid::display(int dx, int dy, Palette* palette) const
 						mat_scale(-1.f, 1.f, 1.f);
 					}
 
-					mat_rotatex(-1.5708f);
+					mat_rotatex(1.5708f);
 
 					for (int k = 0; k < dh; ++k)
 					{
@@ -283,12 +306,13 @@ void BattleGrid::display(int dx, int dy, Palette* palette) const
 
 
 
+float BattleState::m_Angle{ 0.7854f };
+
 BattleState::BattleState(string map) : m_Grid(map)
 {
 	m_Camera.set(0, 0, 256.f);
 	m_Camera.set(1, 0, 256.f);
 
-	m_Angle = 0.7854f;
 	m_Zoom = 1.f;
 
 	unfreeze();
@@ -310,7 +334,7 @@ void BattleState::__display() const
 
 	// Draw the grid
 	mat_rotatex(0.8727f);
-	mat_scale(1.f, 1.f, 1.3054f);
+	mat_scale(1.f, 1.f, -1.3054f);
 	mat_rotatez(m_Angle);
 	mat_translate(-m_Camera.get(0), -m_Camera.get(1), 0.f);
 	m_Grid.display(sinf(m_Angle) > 0 ? -1 : 1, cosf(m_Angle) > 0 ? -1 : 1, clear_palette);
@@ -323,11 +347,95 @@ void BattleState::__update(int frames_passed)
 	m_Angle += frames_passed * 0.01309f;
 }
 
+float BattleState::get_angle()
+{
+	return m_Angle;
+}
 
+
+
+bool BattleObject::m_IsObjectDataLoaded{ false };
+
+unordered_map<string, unordered_map<string, string>*> BattleObject::m_ObjectData{};
 
 unordered_map<string, BattleObject*> BattleObject::m_Objects{};
 
-BattleObject* BattleObject::get_object()
+BattleObject::BattleObject(std::string id)
 {
-	return nullptr;
+	m_Objects.emplace(id, this);
+}
+
+BattleObject* BattleObject::get_object(std::string id)
+{
+	// Check if the object has already been loaded.
+	auto iter = m_Objects.find(id);
+	if (iter != m_Objects.end())
+		return iter->second;
+
+	// Load the object data, if it hasn't been loaded already.
+	if (!m_IsObjectDataLoaded)
+	{
+		LoadFile file("res/data/objects.txt");
+
+		while (file.good())
+		{
+			unordered_map<string, string>* data = new unordered_map<string, string>();
+			string id = file.load_data(*data);
+			m_ObjectData.emplace(id, data);
+		}
+
+		m_IsObjectDataLoaded = true;
+	}
+
+	// Load the object
+	BattleObject* obj = nullptr;
+
+	auto data_iter = m_ObjectData.find(id);
+	if (data_iter != m_ObjectData.end())
+	{
+		unordered_map<string, string>& data = *data_iter->second;
+		string type = data["type"];
+
+		// StaticBattleObject
+		if (type.compare("static") == 0)
+		{
+			obj = new StaticBattleObject(id, data["sprite_sheet"], data["sprite"]);
+		}
+
+		if (obj)
+			m_Objects.emplace(id, obj);
+
+		// Clean up
+		delete data_iter->second;
+		m_ObjectData.erase(id);
+	}
+
+	return obj;
+}
+
+
+BillboardedBattleObject::BillboardedBattleObject(string id, SpriteGraphic* sprite) : BattleObject(id)
+{
+	m_Sprite = sprite;
+}
+
+void BillboardedBattleObject::display() const
+{
+	mat_push();
+	mat_translate(0.5f * GRID_TILE_SIZE, 0.5f * GRID_TILE_SIZE, 0.f);
+	mat_rotatez(-BattleState::get_angle());
+	mat_translate(-0.5f * m_Sprite->get_width(), 0.f, 0.f);
+	mat_rotatex(1.5708f);
+	m_Sprite->display();
+	mat_pop();
+}
+
+
+StaticBattleObject::StaticBattleObject(string id, string sprite_sheet, string sprite) : BillboardedBattleObject(id, nullptr)
+{
+	SpriteSheet* ssheet = SpriteSheet::generate(sprite_sheet.c_str());
+	Sprite* spr = Sprite::get_sprite(sprite);
+
+	Palette* palette = new SinglePalette(vec4f(1.f, 0.f, 0.f, 0.f), vec4f(0.f, 1.f, 0.f, 0.f), vec4f(0.f, 0.f, 1.f, 0.f));
+	m_Sprite = new StaticSpriteGraphic(ssheet, spr, palette);
 }

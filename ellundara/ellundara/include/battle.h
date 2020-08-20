@@ -96,6 +96,9 @@ public:
 class BattleState : public State, public UpdateListener
 {
 protected:
+	// The current angle that the grid is being viewed from.
+	static float m_Angle;
+
 	// The grid for the battle.
 	BattleGrid m_Grid;
 
@@ -107,9 +110,6 @@ protected:
 
 	// The current zoom factor.
 	float m_Zoom;
-
-	// The current angle that the grid is being viewed from.
-	float m_Angle;
 
 	/// <summary>Adjusts the transform in response to the bounds changing.</summary>
 	void __set_bounds();
@@ -125,6 +125,8 @@ public:
 	/// <summary>Initializes a new battle state.</summary>
 	/// <param name="map">The ID of the battle map.</param>
 	BattleState(std::string map);
+
+	static float get_angle();
 };
 
 
@@ -136,12 +138,35 @@ public:
 class BattleObject
 {
 protected:
+	static bool m_IsObjectDataLoaded;
+
+	static std::unordered_map<std::string, std::unordered_map<std::string, std::string>*> m_ObjectData;
+
 	static std::unordered_map<std::string, BattleObject*> m_Objects;
 
+	BattleObject(std::string id);
+
 public:
-	static BattleObject* get_object();
+	static BattleObject* get_object(std::string id);
 
 	virtual void display() const = 0;
+};
+
+class BillboardedBattleObject : public BattleObject
+{
+protected:
+	SpriteGraphic* m_Sprite;
+
+public:
+	BillboardedBattleObject(std::string id, SpriteGraphic* sprite);
+
+	void display() const;
+};
+
+class StaticBattleObject : public BillboardedBattleObject
+{
+public:
+	StaticBattleObject(std::string id, std::string sprite_sheet, std::string sprite);
 };
 
 class BattleActor : public BattleObject

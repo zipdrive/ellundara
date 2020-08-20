@@ -1,4 +1,6 @@
-debug
+tileset     debug
 
-debug1   x = 0   y = 0   dx = 4  dy = 4  height = 2
-debug2   x = 1   y = 1   dx = 2  dy = 2  height = 3
+tile        debug1         x = 0   y = 0   dx = 4  dy = 4  height = 2
+tile        debug2         x = 1   y = 1   dx = 2  dy = 2  height = 3
+
+obj         debug          x = 1   y = 1

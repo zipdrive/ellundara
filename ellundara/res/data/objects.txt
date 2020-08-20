@@ -1,0 +1,1 @@
+debug        name="Debug Object"        type="static"           sprite_sheet="obj/reds.png"         sprite="reds front stand"
