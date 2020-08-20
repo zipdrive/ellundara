@@ -93,11 +93,14 @@ public:
 };
 
 // The state when the game is in a battle.
-class BattleState : public State, public UpdateListener
+class BattleState : public State, public UpdateListener, public KeyboardListener
 {
 protected:
 	// The current angle that the grid is being viewed from.
 	static float m_Angle;
+
+	// The angle to set the angle to.
+	float m_TargetAngle;
 
 	// The grid for the battle.
 	BattleGrid m_Grid;
@@ -126,7 +129,19 @@ public:
 	/// <param name="map">The ID of the battle map.</param>
 	BattleState(std::string map);
 
+	/// <summary>Retrieves the angle that the grid is being viewed from.</summary>
+	/// <returns>The angle that the grid is being viewed from.</summary>
 	static float get_angle();
+
+	/// <summary>Prevents the state from registering updates and inputs.</summary>
+	void freeze();
+
+	/// <summary>Makes the state start registering updates and inputs.</summary>
+	void unfreeze();
+
+	/// <summary>Responds to a keyboard control being pressed.</summary>
+	/// <param name="event_data">The data for the event.</param>
+	int trigger(const KeyEvent& event_data);
 };
 
 

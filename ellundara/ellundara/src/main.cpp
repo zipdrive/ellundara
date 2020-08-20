@@ -1,3 +1,4 @@
+#include "../include/controls.h"
 #include "../include/state.h"
 #include "../include/battle.h"
 
@@ -31,6 +32,10 @@ int main()
 {
 	// Initialize the Onion library.
 	onion_init("settings.ini");
+
+	// Register controls.
+	register_keyboard_control(CONTROL_ROTATE_LEFT, CONTROL_ROTATE_LEFT_DEFAULT);
+	register_keyboard_control(CONTROL_ROTATE_RIGHT, CONTROL_ROTATE_RIGHT_DEFAULT);
 
 	// Initialize the global state.
 	set_state(new BattleState("debug"));

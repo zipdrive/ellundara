@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <regex>
+#include "../../include/controls.h"
 #include "../../include/battle.h"
 
 #include <iostream>
@@ -306,10 +307,16 @@ void BattleGrid::display(int dx, int dy, Palette* palette) const
 
 
 
+
+#define ROTATE_SPEED	0.01309f
+#define HALF_PI			1.570796327f
+
 float BattleState::m_Angle{ 0.7854f };
 
 BattleState::BattleState(string map) : m_Grid(map)
 {
+	m_TargetAngle = m_Angle - HALF_PI;
+
 	m_Camera.set(0, 0, 256.f);
 	m_Camera.set(1, 0, 256.f);
 
@@ -344,7 +351,51 @@ void BattleState::__display() const
 
 void BattleState::__update(int frames_passed)
 {
-	m_Angle += frames_passed * 0.01309f;
+	if (m_TargetAngle < m_Angle)
+	{
+		m_Angle -= frames_passed * ROTATE_SPEED;
+		if (m_Angle < m_TargetAngle) 
+			m_Angle = m_TargetAngle;
+	}
+	else if (m_TargetAngle > m_Angle)
+	{
+		m_Angle += frames_passed * ROTATE_SPEED;
+		if (m_Angle > m_TargetAngle)
+			m_Angle = m_TargetAngle;
+	}
+}
+
+void BattleState::freeze()
+{
+	UpdateListener::freeze();
+	KeyboardListener::freeze();
+}
+
+void BattleState::unfreeze()
+{
+	UpdateListener::unfreeze();
+	KeyboardListener::unfreeze();
+}
+
+int BattleState::trigger(const KeyEvent& event_data)
+{
+	if (event_data.pressed)
+	{
+		if (event_data.control == CONTROL_ROTATE_LEFT)
+		{
+			if (m_Angle <= m_TargetAngle)
+				m_TargetAngle -= HALF_PI;
+			return EVENT_STOP;
+		}
+		else if (event_data.control == CONTROL_ROTATE_RIGHT)
+		{
+			if (m_Angle >= m_TargetAngle)
+				m_TargetAngle += HALF_PI;
+			return EVENT_STOP;
+		}
+	}
+
+	return EVENT_CONTINUE;
 }
 
 float BattleState::get_angle()
