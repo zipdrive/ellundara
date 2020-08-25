@@ -34,6 +34,14 @@ int main()
 	onion_init("settings.ini");
 
 	// Register controls.
+	register_keyboard_control(CONTROL_SELECT, CONTROL_SELECT_DEFAULT);
+	register_keyboard_control(CONTROL_CANCEL, CONTROL_CANCEL_DEFAULT);
+
+	register_keyboard_control(CONTROL_MOVE_LEFT, CONTROL_MOVE_LEFT_DEFAULT);
+	register_keyboard_control(CONTROL_MOVE_RIGHT, CONTROL_MOVE_RIGHT_DEFAULT);
+	register_keyboard_control(CONTROL_MOVE_DOWN, CONTROL_MOVE_DOWN_DEFAULT);
+	register_keyboard_control(CONTROL_MOVE_UP, CONTROL_MOVE_UP_DEFAULT);
+
 	register_keyboard_control(CONTROL_ROTATE_LEFT, CONTROL_ROTATE_LEFT_DEFAULT);
 	register_keyboard_control(CONTROL_ROTATE_RIGHT, CONTROL_ROTATE_RIGHT_DEFAULT);
 
