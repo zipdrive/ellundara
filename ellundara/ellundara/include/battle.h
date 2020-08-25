@@ -128,15 +128,22 @@ namespace Battle
 		// The current angle that the grid is being viewed from. Uses radians.
 		static float m_Angle;
 
+		// The current camera position.
+		static vec3f m_Camera;
+
+		// The current zoom factor.
+		static float m_Zoom;
+
+
 		// The angle to set the angle to. Uses radians.
 		float m_TargetAngle;
 
+		// The camera position to set the camera to.
+		vec3f m_TargetCamera;
 
-		// The current camera position.
-		vec3f m_Camera;
+		// The zoom factor to set the zoom to.
+		float m_TargetZoom;
 
-		// The current zoom factor.
-		float m_Zoom;
 
 
 		// Data structure about a tile that needs to be drawn.
@@ -180,12 +187,16 @@ namespace Battle
 		class Selector : public Highlight
 		{
 		protected:
+			friend class Visibility;
+
 			static Graphic* m_Graphic;
 
 			vec2i m_Tile;
 
 		public:
 			Selector();
+
+			void set_tile(Visibility* vis, int x, int y);
 
 			void adjust_tile(Visibility* vis, int dx, int dy);
 
@@ -206,6 +217,15 @@ namespace Battle
 		/// <summary>Adjusts the angle that the grid is being viewed from.</summary>
 		/// <param name="adjustment">The angular adjustment, in radians.</param>
 		void adjust_angle(float adjustment);
+
+		/// <summary>Adjusts the camera position.</summary>
+		/// <param name="adjustment">The position adjustment.</param>
+		void adjust_camera(vec3f adjustment);
+
+
+		/// <summary>Sets the target camera position.</summary>
+		/// <param name="target">The target for the camera position.</param>
+		void set_camera_target(vec3f target);
 
 
 		/// <summary>Displays the base of a tile.</summary>
@@ -238,6 +258,11 @@ namespace Battle
 
 		/// <summary>Rotates the grid counter-clockwise.</summary>
 		void rotate_right();
+
+		/// <summary>Sets which tile is selected.</summary>
+		/// <param name="dx">The x-coordinate of the selected tile.</param>
+		/// <param name="dy">The y-coordinate of the selected tile.</param>
+		void set_selected_tile(int x, int y);
 
 		/// <summary>Adjusts which tile is selected.</summary>
 		/// <param name="dx">The change in x-coordinate, before factoring in the camera.</param>

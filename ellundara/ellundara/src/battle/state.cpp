@@ -211,6 +211,17 @@ Visibility::Selector::Selector()
 	m_Tile = vec2i(0, 0);
 }
 
+void Visibility::Selector::set_tile(Visibility* vis, int x, int y)
+{
+	m_Tile = vec2i(x, y);
+
+	if (m_Tile.get(0) < 0)								m_Tile.set(0, 0, 0);
+	else if (m_Tile.get(0) >= vis->m_Grid->width)		m_Tile.set(0, 0, vis->m_Grid->width - 1);
+
+	if (m_Tile.get(1) < 0)								m_Tile.set(1, 0, 0);
+	else if (m_Tile.get(1) >= vis->m_Grid->height)		m_Tile.set(1, 0, vis->m_Grid->height - 1);
+}
+
 void Visibility::Selector::adjust_tile(Visibility* vis, int dx, int dy)
 {
 	m_Tile += vec2i(dx, dy);
@@ -235,6 +246,8 @@ void Visibility::Selector::display() const
 
 
 #define ROTATE_SPEED		0.01309f
+#define CAMERA_SPEED		0.015f
+#define CAMERA_THRESHOLD	1.f
 
 #define QUARTER_PI			0.7853981634f
 #define HALF_PI				1.570796327f
@@ -246,6 +259,8 @@ void Visibility::Selector::display() const
 #define TOP_DOWN_ANGLE		0.872664626f
 
 float Visibility::m_Angle{ QUARTER_PI };
+vec3f Visibility::m_Camera{};
+float Visibility::m_Zoom{ 1.f };
 
 float Visibility::get_angle()
 {
@@ -259,8 +274,6 @@ Visibility::Visibility(const mat2x2i& bounds, Grid* grid) : m_Bounds(bounds)
 	m_Palette = new SinglePalette(vec4f(1.f, 0.f, 0.f, 0.f), vec4f(0.f, 1.f, 0.f, 0.f), vec4f(0.f, 0.f, 1.f, 0.f));
 
 	m_TargetAngle = m_Angle;
-	m_Camera = vec3f(GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_HEIGHT);
-	m_Zoom = 1.f;
 }
 
 void Visibility::reset_transform()
@@ -395,6 +408,14 @@ void Visibility::adjust_angle(float adjustment)
 	}
 }
 
+void Visibility::adjust_camera(vec3f adjustment)
+{
+	m_Camera += adjustment;
+
+	// TODO make this more efficient
+	reset();
+}
+
 void Visibility::rotate_left()
 {
 	if (m_Angle >= m_TargetAngle)
@@ -407,6 +428,16 @@ void Visibility::rotate_right()
 		m_TargetAngle -= HALF_PI;
 }
 
+void Visibility::set_selected_tile(int x, int y)
+{
+	m_Selector.set_tile(this, x, y);
+	m_TargetCamera = vec3f(
+		(m_Selector.m_Tile.get(0) + 0.5f) * GRID_TILE_SIZE,
+		(m_Selector.m_Tile.get(1) + 0.5f) * GRID_TILE_SIZE,
+		m_Grid->get_tile(m_Selector.m_Tile.get(0), m_Selector.m_Tile.get(1))->height * GRID_TILE_HEIGHT
+	);
+}
+
 void Visibility::adjust_selected_tile(int dx, int dy)
 {
 	float theta = m_Angle + QUARTER_PI;
@@ -417,6 +448,11 @@ void Visibility::adjust_selected_tile(int dx, int dy)
 	matrix<int, 2, 1> d = rot * vec2i(dx, dy);
 
 	m_Selector.adjust_tile(this, d.get(0), d.get(1));
+	m_TargetCamera = vec3f(
+		(m_Selector.m_Tile.get(0) + 0.5f) * GRID_TILE_SIZE, 
+		(m_Selector.m_Tile.get(1) + 0.5f) * GRID_TILE_SIZE, 
+		m_Grid->get_tile(m_Selector.m_Tile.get(0), m_Selector.m_Tile.get(1))->height * GRID_TILE_HEIGHT
+	);
 }
 
 void Visibility::update(int frames_passed)
@@ -443,6 +479,21 @@ void Visibility::update(int frames_passed)
 
 			// Reset the transform matrix
 			reset();
+		}
+	}
+
+	if (m_TargetCamera != m_Camera)
+	{
+		vec3f diff = m_TargetCamera - m_Camera;
+		float dist = pow(diff.get(0), 2) + pow(diff.get(1), 2) + pow(diff.get(2), 2);
+
+		if (dist < CAMERA_THRESHOLD)
+		{
+			m_Camera = m_TargetCamera;
+		}
+		else
+		{
+			adjust_camera(frames_passed * CAMERA_SPEED * (m_TargetCamera - m_Camera));
 		}
 	}
 }
@@ -757,7 +808,7 @@ void BillboardedObject::display() const
 	//mat_scale(1.154700538f, 1.f, 1.f);
 	//mat_rotatez(-0.5235987756f);
 	mat_rotatez(-Visibility::get_angle());
-	mat_translate(-0.5f * m_Sprite->get_width(), 0.f, 0.f);
+	mat_translate(-0.5f * m_Sprite->get_width(), -0.15f * m_Sprite->get_width(), 0.f);
 	mat_rotatex(1.5708f);
 	m_Sprite->display();
 	mat_pop();
